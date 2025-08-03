@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cdn-net
+
+  origin:
+    image: nginx:alpine
+    container_name: origin
+    volumes:
+      - ./origin/files:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    networks:
+      - cdn-net
+
+  edge1:
+    build:
+      context: ./edge
+    container_name: edge1
+    ports:
+      - "8081:80"
+    networks:
+      - cdn-net
+    depends_on:
+      - redis
+      - origin
+
+networks:
+  cdn-net:
+    driver: bridge
