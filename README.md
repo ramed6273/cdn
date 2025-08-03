@@ -7,7 +7,7 @@ This project simulates a real-world CDN (Content Delivery Network) architecture 
 
 ---
 
-``` mermaid
+```mermaid
 graph TD
   client[Client (curl/Browser)]
   edge[Edge Server (OpenResty)]
@@ -17,7 +17,6 @@ graph TD
   client --> edge
   edge --> redis
   edge --> origin
-
 ```
 
 ## Architecture Overview
