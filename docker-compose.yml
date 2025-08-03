@@ -23,6 +23,8 @@ services:
     build:
       context: ./edge
     container_name: edge1
+    volumes:
+      - ./edge/cache:/usr/local/openresty/cache
     ports:
       - "8081:80"
     networks:

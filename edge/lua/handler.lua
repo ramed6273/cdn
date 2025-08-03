@@ -1,28 +1,34 @@
-local redis = require "resty.redis"
-local red = redis:new()
-red:set_timeout(1000)
+local file = ngx.var.uri
+local cached_path = "/usr/local/openresty/cache" .. file
+local cache_url = "/cached" .. file
 
-local ok, err = red:connect("redis", 6379)
-if not ok then
+-- check if file exists
+local file_handle = io.open(cached_path, "rb")
+if file_handle then
+    file_handle:close()
+    return ngx.exec(cache_url)
+end
+
+-- fetch from origin
+local res = ngx.location.capture("/origin_proxy" .. file)
+if res.status ~= 200 then
+    ngx.status = res.status
+    ngx.say("Failed to fetch from origin: ", res.status)
+    return ngx.exit(res.status)
+end
+
+-- write to cache
+local dir = string.match(cached_path, "(.+)/[^/]+$")
+os.execute("mkdir -p " .. dir)
+
+local out, err = io.open(cached_path, "wb")
+if not out then
     ngx.status = 500
-    ngx.say("Redis connect error: ", err)
+    ngx.say("Failed to open file for writing: ", err)
     return ngx.exit(500)
 end
 
-local res, err = red:get("hello")
-if not res or res == ngx.null then
-    local ok, err = red:set("hello", "world")
-    if not ok then
-        ngx.status = 500
-        ngx.say("Redis set error: ", err)
-        return ngx.exit(500)
-    end
+out:write(res.body)
+out:close()
 
-    ngx.say("Cache miss - set hello=world")
-else
-    ngx.say("Cache hit: hello = " .. res)
-end
-
--- close connection explicitly
-red:set_keepalive(10000, 100)
-
+return ngx.exec(cache_url)
